@@ -1,0 +1,22 @@
+{
+  "resources": [
+    {
+      "id": "1",
+      "title": "English Tutorial",
+      "desc": "by Ms. Wong",
+      "content": "video.mp4"
+    },
+    {
+      "id": "2",
+      "title": "Dictation Result",
+      "desc": "Dictated on week 5",
+      "content": "dictation_result.pdf"
+    },
+    {
+      "id": "8498081",
+      "title": "(UPDATED AGAIN) Dictation Result",
+      "desc": "(UPDATED AGAIN) Dictated on week 5",
+      "content": "(UPDATED AGAIN) dictation_result.pdf"
+    }
+  ]
+}
