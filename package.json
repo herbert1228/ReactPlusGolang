@@ -6,12 +6,16 @@
     "@material-ui/core": "^1.5.1",
     "@material-ui/icons": "^1.1.1",
     "ajv": "^6.5.3",
+    "classnames": "^2.2.6",
     "npm": "^6.4.0",
+    "prop-types": "^15.6.2",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
+    "react-jss": "^8.6.1",
     "react-scripts": "1.1.4",
     "react-webcam": "^1.0.1",
-    "typeface-roboto": "0.0.54"
+    "typeface-roboto": "0.0.54",
+    "whatwg-fetch": "^2.0.4"
   },
   "scripts": {
     "start": "PORT=3000 react-scripts start",

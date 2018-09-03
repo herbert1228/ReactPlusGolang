@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 	"strconv"
-	"math/rand"
 	"github.com/withmandala/go-log"
 	"os"
 	"io/ioutil"
+	"math"
+	"github.com/rs/cors"
+	"sync"
 )
 
 type Resource struct {
@@ -32,6 +33,26 @@ var rawJson RawJson
 // Without Caller Info (Warn, Info, Trace)
 var logger = log.New(os.Stderr).WithColor() //switch between logger.Quiet and logger.NoQuiet if logs are annoying
 
+func serverConsole(s string, err ...string){
+	if err == nil {
+		logger.Trace(s)
+		return
+	}
+	logger.Warn(s + " item not found, request id:" + err[0])
+}
+
+func uniqueID() int {
+	id := math.MinInt8
+	for _, item := range res{
+		itemId, _ := strconv.Atoi(item.ID)
+		if itemId > id{
+			id = itemId
+		}
+	}
+	id += 1
+	return id
+}
+
 func readJsonFile() {
 	jsonFile, err := os.Open("./src/server/resources.json")
 	if err != nil {
@@ -44,12 +65,15 @@ func readJsonFile() {
 }
 
 func writeJsonFile() { //TODO need a lock
+	var mutex sync.Mutex
+	mutex.Lock()
 	rawJson.Resources = res
 	byteValue, err := json.Marshal(rawJson)
 	if err != nil {
 		logger.Error(err)
 	}
 	ioutil.WriteFile("./src/server/resources.json", byteValue, 0644)
+	mutex.Unlock()
 }
 
 func homePage(w http.ResponseWriter, r *http.Request)  {
@@ -63,7 +87,7 @@ func getResources(w http.ResponseWriter, r *http.Request)  {
 	serverConsole("GET Items")
 }
 
-func getResource(w http.ResponseWriter, r *http.Request)  {
+func getItem(w http.ResponseWriter, r *http.Request)  {
 	readJsonFile()
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
@@ -78,18 +102,18 @@ func getResource(w http.ResponseWriter, r *http.Request)  {
 	serverConsole("GET", params["id"])
 }
 
-func uploadResource(w http.ResponseWriter, r *http.Request)  {
+func uploadResources(w http.ResponseWriter, r *http.Request)  {
 	w.Header().Set("Content-Type", "application/json")
 	var item Resource
 	_ = json.NewDecoder(r.Body).Decode(&item) //TODO why decode an addr
-	item.ID = strconv.Itoa(rand.Intn(10000000)) //TODO !!! Mock ID - not safe
+	item.ID = strconv.Itoa(uniqueID())
 	res = append(res, item)
 	json.NewEncoder(w).Encode(item)
 	serverConsole("UPLOAD Item ID:" + item.ID)
 	writeJsonFile()
 }
 
-func updateResource(w http.ResponseWriter, r *http.Request)  {
+func updateResources(w http.ResponseWriter, r *http.Request)  {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r);
 	for index, item := range res {
@@ -125,29 +149,24 @@ func deleteResource(w http.ResponseWriter, r *http.Request)  {
 	serverConsole("DELETE", params["id"])
 }
 
-func serverConsole(s string, err ...string){
-	if err == nil {
-		logger.Trace(s)
-		return
-	}
-	logger.Warn(s + " item not found, request id:" + err[0])
-}
-
-func main()  {
-	logger.WithDebug() //Debug
+func handleRequests() {
 	r := mux.NewRouter().StrictSlash(true)
 
 	r.HandleFunc("/", homePage)
 	r.HandleFunc("/api/res", getResources).Methods("GET") // url "/api/res/" is invalid
-	r.HandleFunc("/api/res/{id}", getResource).Methods("GET")
-	r.HandleFunc("/api/res", uploadResource).Methods("POST") // url "/api/res/" is invalid
-	r.HandleFunc("/api/res/{id}", updateResource).Methods("PUT")
+	r.HandleFunc("/api/res/{id}", getItem).Methods("GET")
+	r.HandleFunc("/api/res", uploadResources).Methods("POST") // url "/api/res/" is invalid
+	r.HandleFunc("/api/res/{id}", updateResources).Methods("PUT")
 	r.HandleFunc("/api/res/{id}", deleteResource).Methods("DELETE")
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "DELETE", "PUT"},
 	})
-	myRouter := c.Handler(r)
-	//myRouter := cors.Default().Handler(r)
+	myRouter := c.Handler(r) //myRouter := cors.Default().Handler(r)
 	logger.Fatal(http.ListenAndServe(":8080", myRouter))
+}
+
+func main()  {
+	logger.WithDebug() //Debug
+	handleRequests()
 }
